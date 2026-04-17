@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"time"
@@ -44,13 +45,12 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 	end := start.Add(24 * time.Hour)
 
-	url := fmt.Sprintf("%s/me/time_entries?start_date=%s&end_date=%s",
-		togglBase,
-		start.Format(time.RFC3339),
-		end.Format(time.RFC3339),
-	)
+	params := url.Values{}
+	params.Set("start_date", start.Format(time.RFC3339))
+	params.Set("end_date", end.Format(time.RFC3339))
+	reqURL := fmt.Sprintf("%s/me/time_entries?%s", togglBase, params.Encode())
 
-	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, reqURL, nil)
 	if err != nil {
 		writeErr(w, http.StatusInternalServerError, err.Error())
 		return
