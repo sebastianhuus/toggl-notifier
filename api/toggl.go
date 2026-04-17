@@ -41,8 +41,17 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	now := time.Now()
-	start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	loc := time.Now().Location()
+	day := time.Now()
+	if d := r.URL.Query().Get("date"); d != "" {
+		parsed, err := time.ParseInLocation("2006-01-02", d, loc)
+		if err != nil {
+			writeErr(w, http.StatusBadRequest, "date must be YYYY-MM-DD")
+			return
+		}
+		day = parsed
+	}
+	start := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, loc)
 	end := start.Add(24 * time.Hour)
 
 	params := url.Values{}
