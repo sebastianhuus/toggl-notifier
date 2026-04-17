@@ -40,6 +40,16 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusInternalServerError, "TOGGL_WORKSPACE_ID must be an integer")
 		return
 	}
+	projRaw := os.Getenv("TOGGL_PROJECT_ID")
+	if projRaw == "" {
+		writeErr(w, http.StatusInternalServerError, "TOGGL_PROJECT_ID is not set")
+		return
+	}
+	projectID, err := strconv.ParseInt(projRaw, 10, 64)
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, "TOGGL_PROJECT_ID must be an integer")
+		return
+	}
 
 	loc := time.Now().Location()
 	day := time.Now()
@@ -92,9 +102,13 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 
 	entries := make([]TimeEntry, 0, len(all))
 	for _, e := range all {
-		if e.WorkspaceID == workspaceID {
-			entries = append(entries, e)
+		if e.WorkspaceID != workspaceID {
+			continue
 		}
+		if e.ProjectID == nil || *e.ProjectID != projectID {
+			continue
+		}
+		entries = append(entries, e)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
