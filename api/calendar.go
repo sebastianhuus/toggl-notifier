@@ -5,10 +5,14 @@ import (
 	"net/http"
 	"time"
 
+	"toggl-notifier/auth"
 	"toggl-notifier/gcal"
 )
 
 func Handler(w http.ResponseWriter, r *http.Request) {
+	if !auth.Require(w, r) {
+		return
+	}
 	client, err := gcal.New(r.Context())
 	if err != nil {
 		writeErr(w, http.StatusInternalServerError, err.Error())

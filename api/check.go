@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"toggl-notifier/auth"
 	"toggl-notifier/compare"
 	"toggl-notifier/gcal"
 	"toggl-notifier/gmailsend"
@@ -17,6 +18,9 @@ import (
 const defaultThresholdMinutes = 30
 
 func Handler(w http.ResponseWriter, r *http.Request) {
+	if !auth.Require(w, r) {
+		return
+	}
 	notifyEmail := os.Getenv("NOTIFY_EMAIL")
 	if notifyEmail == "" {
 		writeErr(w, http.StatusInternalServerError, "NOTIFY_EMAIL is not set")

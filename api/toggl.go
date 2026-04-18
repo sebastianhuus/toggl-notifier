@@ -5,10 +5,14 @@ import (
 	"net/http"
 	"time"
 
+	"toggl-notifier/auth"
 	"toggl-notifier/toggl"
 )
 
 func Handler(w http.ResponseWriter, r *http.Request) {
+	if !auth.Require(w, r) {
+		return
+	}
 	client, err := toggl.New()
 	if err != nil {
 		writeErr(w, http.StatusInternalServerError, err.Error())
