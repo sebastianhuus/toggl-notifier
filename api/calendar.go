@@ -9,7 +9,7 @@ import (
 	"golang.org/x/oauth2"
 	calendar "google.golang.org/api/calendar/v3"
 	"google.golang.org/api/option"
-	"toggl-notifier/internal/googleauth"
+	"toggl-notifier/googleauth"
 )
 
 type CalendarEvent struct {

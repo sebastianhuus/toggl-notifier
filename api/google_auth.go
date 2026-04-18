@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"golang.org/x/oauth2"
-	"toggl-notifier/internal/googleauth"
+	"toggl-notifier/googleauth"
 )
 
 func Handler(w http.ResponseWriter, r *http.Request) {

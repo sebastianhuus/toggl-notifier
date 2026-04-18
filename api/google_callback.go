@@ -5,7 +5,7 @@ import (
 	"html/template"
 	"net/http"
 
-	"toggl-notifier/internal/googleauth"
+	"toggl-notifier/googleauth"
 )
 
 var callbackTmpl = template.Must(template.New("callback").Parse(`<!doctype html>
