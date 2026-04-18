@@ -6,14 +6,14 @@ import (
 	"time"
 
 	"toggl-notifier/auth"
-	"toggl-notifier/toggl"
+	"toggl-notifier/gcal"
 )
 
 func Handler(w http.ResponseWriter, r *http.Request) {
 	if !auth.Require(w, r) {
 		return
 	}
-	client, err := toggl.New()
+	client, err := gcal.New(r.Context())
 	if err != nil {
 		writeErr(w, http.StatusInternalServerError, err.Error())
 		return
@@ -30,14 +30,14 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		day = parsed
 	}
 
-	entries, err := client.EntriesForDay(r.Context(), day)
+	events, err := client.EventsForDay(r.Context(), day)
 	if err != nil {
 		writeErr(w, http.StatusBadGateway, err.Error())
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(entries)
+	json.NewEncoder(w).Encode(events)
 }
 
 func writeErr(w http.ResponseWriter, code int, msg string) {
