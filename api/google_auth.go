@@ -35,7 +35,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 
 	url := cfg.AuthCodeURL(state,
 		oauth2.AccessTypeOffline,
-		oauth2.SetAuthURLParam("prompt", "consent"),
+		oauth2.SetAuthURLParam("prompt", "select_account consent"),
 	)
 	http.Redirect(w, r, url, http.StatusFound)
 }
