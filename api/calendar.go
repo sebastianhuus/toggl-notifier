@@ -10,6 +10,7 @@ import (
 	calendar "google.golang.org/api/calendar/v3"
 	"google.golang.org/api/option"
 	"toggl-notifier/googleauth"
+	"toggl-notifier/kv"
 )
 
 type CalendarEvent struct {
@@ -22,11 +23,6 @@ type CalendarEvent struct {
 }
 
 func Handler(w http.ResponseWriter, r *http.Request) {
-	refresh := os.Getenv("GOOGLE_REFRESH_TOKEN")
-	if refresh == "" {
-		writeErr(w, http.StatusInternalServerError, "GOOGLE_REFRESH_TOKEN is not set — visit /api/google_auth to obtain one")
-		return
-	}
 	colorID := os.Getenv("CALENDAR_COLOR_ID")
 	if colorID == "" {
 		colorID = "3"
@@ -35,6 +31,21 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	cfg, err := googleauth.Config()
 	if err != nil {
 		writeErr(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	store, err := kv.New()
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	refresh, err := store.Get(r.Context(), kv.RefreshTokenKey)
+	if err != nil {
+		writeErr(w, http.StatusBadGateway, "failed to read refresh token: "+err.Error())
+		return
+	}
+	if refresh == "" {
+		writeErr(w, http.StatusUnauthorized, "no refresh token stored — visit /api/google_auth to sign in")
 		return
 	}
 

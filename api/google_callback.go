@@ -6,24 +6,23 @@ import (
 	"net/http"
 
 	"toggl-notifier/googleauth"
+	"toggl-notifier/kv"
 )
 
 var callbackTmpl = template.Must(template.New("callback").Parse(`<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Google OAuth — refresh token</title>
+<title>Signed in</title>
 <style>
-body { font-family: system-ui, sans-serif; max-width: 720px; margin: 48px auto; padding: 0 16px; line-height: 1.5; }
-code { display: block; padding: 12px; background: #f4f4f4; border-radius: 6px; word-break: break-all; white-space: pre-wrap; }
-small { color: #666; }
+body { font-family: system-ui, sans-serif; max-width: 640px; margin: 48px auto; padding: 0 16px; line-height: 1.5; }
+a { color: #0b5fff; }
 </style>
 </head>
 <body>
-<h1>Refresh token captured</h1>
-<p>Add this to your Vercel project env as <strong>GOOGLE_REFRESH_TOKEN</strong>, then redeploy.</p>
-<code>{{.RefreshToken}}</code>
-<p><small>Access token expires: {{.Expiry}}</small></p>
+<h1>Signed in</h1>
+<p>Refresh token stored. You can close this tab.</p>
+<p><a href="/api/calendar">Try /api/calendar</a></p>
 </body>
 </html>`))
 
@@ -62,16 +61,20 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	store, err := kv.New()
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if err := store.Set(r.Context(), kv.RefreshTokenKey, tok.RefreshToken); err != nil {
+		writeErr(w, http.StatusBadGateway, "failed to persist refresh token: "+err.Error())
+		return
+	}
+
 	http.SetCookie(w, &http.Cookie{Name: "oauth_state", Value: "", Path: "/", MaxAge: -1})
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	callbackTmpl.Execute(w, struct {
-		RefreshToken string
-		Expiry       string
-	}{
-		RefreshToken: tok.RefreshToken,
-		Expiry:       tok.Expiry.String(),
-	})
+	callbackTmpl.Execute(w, nil)
 }
 
 func writeErr(w http.ResponseWriter, code int, msg string) {
