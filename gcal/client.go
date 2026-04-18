@@ -22,7 +22,6 @@ type Event struct {
 	HTMLLink string    `json:"htmlLink,omitempty"`
 }
 
-// DurationSeconds returns the event length in seconds.
 func (e Event) DurationSeconds() int64 {
 	return int64(e.End.Sub(e.Start).Seconds())
 }
@@ -48,12 +47,10 @@ func New(ctx context.Context) (*Client, error) {
 	if refresh == "" {
 		return nil, fmt.Errorf("no refresh token stored — visit /api/google_auth to sign in")
 	}
-
 	colorID := os.Getenv("CALENDAR_COLOR_ID")
 	if colorID == "" {
 		colorID = "3"
 	}
-
 	src := cfg.TokenSource(ctx, &oauth2.Token{RefreshToken: refresh})
 	svc, err := calendar.NewService(ctx, option.WithTokenSource(src))
 	if err != nil {
@@ -62,9 +59,6 @@ func New(ctx context.Context) (*Client, error) {
 	return &Client{svc: svc, colorID: colorID}, nil
 }
 
-// EventsForDay returns filtered primary-calendar events for the given local day.
-// Filter: matching colorId, user is organizer, no other attendees, has a time
-// (no all-day events).
 func (c *Client) EventsForDay(ctx context.Context, day time.Time) ([]Event, error) {
 	loc := day.Location()
 	start := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, loc)
@@ -104,18 +98,14 @@ func (c *Client) EventsForDay(ctx context.Context, day time.Time) ([]Event, erro
 			continue
 		}
 		events = append(events, Event{
-			ID:       e.Id,
-			Summary:  e.Summary,
-			Start:    startT,
-			End:      endT,
-			ColorID:  e.ColorId,
-			HTMLLink: e.HtmlLink,
+			ID: e.Id, Summary: e.Summary,
+			Start: startT, End: endT,
+			ColorID: e.ColorId, HTMLLink: e.HtmlLink,
 		})
 	}
 	return events, nil
 }
 
-// TotalSeconds sums event durations.
 func TotalSeconds(events []Event) int64 {
 	var total int64
 	for _, e := range events {

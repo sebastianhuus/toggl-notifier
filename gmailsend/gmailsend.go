@@ -41,14 +41,12 @@ func New(ctx context.Context) (*Client, error) {
 	return &Client{svc: svc}, nil
 }
 
-// Send sends a plain-text email from the authenticated user to `to`.
 func (c *Client) Send(ctx context.Context, to, subject, body string) error {
 	var buf strings.Builder
 	fmt.Fprintf(&buf, "To: %s\r\n", to)
 	fmt.Fprintf(&buf, "Subject: %s\r\n", subject)
 	fmt.Fprintf(&buf, "Content-Type: text/plain; charset=\"UTF-8\"\r\n")
-	fmt.Fprintf(&buf, "\r\n")
-	fmt.Fprintf(&buf, "%s", body)
+	fmt.Fprintf(&buf, "\r\n%s", body)
 
 	raw := base64.RawURLEncoding.EncodeToString([]byte(buf.String()))
 	_, err := c.svc.Users.Messages.Send("me", &gmail.Message{Raw: raw}).Context(ctx).Do()
