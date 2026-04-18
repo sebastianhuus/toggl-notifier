@@ -25,11 +25,7 @@ func New() (*Client, error) {
 	if url == "" || token == "" {
 		return nil, fmt.Errorf("UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN must be set")
 	}
-	return &Client{
-		url:   strings.TrimRight(url, "/"),
-		token: token,
-		http:  http.DefaultClient,
-	}, nil
+	return &Client{url: strings.TrimRight(url, "/"), token: token, http: http.DefaultClient}, nil
 }
 
 func (c *Client) Set(ctx context.Context, key, value string) error {
@@ -47,7 +43,7 @@ func (c *Client) Get(ctx context.Context, key string) (string, error) {
 	}
 	s, ok := res.(string)
 	if !ok {
-		return "", fmt.Errorf("upstash GET %s: unexpected value type %T", key, res)
+		return "", fmt.Errorf("upstash GET %s: unexpected type %T", key, res)
 	}
 	return s, nil
 }

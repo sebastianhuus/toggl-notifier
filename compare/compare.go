@@ -11,9 +11,6 @@ type Report struct {
 	NeedsNotify      bool   `json:"needsNotify"`
 }
 
-// Run computes the delta (calendar - toggl) and flags for notification when
-// the calendar has more time than Toggl beyond the threshold. One-sided: we
-// don't care if Toggl > Calendar (that just means extra tracked work).
 func Run(day string, calendarSeconds, togglSeconds, thresholdSeconds int64) Report {
 	delta := calendarSeconds - togglSeconds
 	return Report{
@@ -26,7 +23,6 @@ func Run(day string, calendarSeconds, togglSeconds, thresholdSeconds int64) Repo
 	}
 }
 
-// FormatDuration renders seconds as "Xh Ym" (or "Ym" under an hour).
 func FormatDuration(seconds int64) string {
 	if seconds < 0 {
 		return "-" + FormatDuration(-seconds)

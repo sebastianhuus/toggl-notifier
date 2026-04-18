@@ -12,7 +12,7 @@ import (
 	"toggl-notifier/compare"
 	"toggl-notifier/gcal"
 	"toggl-notifier/gmailsend"
-	"toggl-notifier/toggl"
+	"toggl-notifier/togglclient"
 )
 
 const defaultThresholdMinutes = 30
@@ -21,6 +21,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	if !auth.Require(w, r) {
 		return
 	}
+
 	notifyEmail := os.Getenv("NOTIFY_EMAIL")
 	if notifyEmail == "" {
 		writeErr(w, http.StatusInternalServerError, "NOTIFY_EMAIL is not set")
@@ -39,26 +40,25 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	dryRun := r.URL.Query().Get("dry_run") == "1" || r.URL.Query().Get("dry_run") == "true"
 	force := r.URL.Query().Get("force") == "1" || r.URL.Query().Get("force") == "true"
 
-	loc := time.Now().Location()
-	day := time.Now().In(loc)
+	day := time.Now()
 
-	togglClient, err := toggl.New()
+	tc, err := togglclient.New()
 	if err != nil {
 		writeErr(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	entries, err := togglClient.EntriesForDay(r.Context(), day)
+	entries, err := tc.EntriesForDay(r.Context(), day)
 	if err != nil {
 		writeErr(w, http.StatusBadGateway, "toggl: "+err.Error())
 		return
 	}
 
-	gcalClient, err := gcal.New(r.Context())
+	gc, err := gcal.New(r.Context())
 	if err != nil {
 		writeErr(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	events, err := gcalClient.EventsForDay(r.Context(), day)
+	events, err := gc.EventsForDay(r.Context(), day)
 	if err != nil {
 		writeErr(w, http.StatusBadGateway, "calendar: "+err.Error())
 		return
@@ -67,41 +67,36 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	report := compare.Run(
 		day.Format("2006-01-02"),
 		gcal.TotalSeconds(events),
-		toggl.TotalSeconds(entries),
+		togglclient.TotalSeconds(entries),
 		int64(thresholdMin)*60,
 	)
 
-	shouldSend := (report.NeedsNotify || force) && !dryRun
-	result := struct {
-		Report   compare.Report `json:"report"`
-		Events   int            `json:"events"`
-		Entries  int            `json:"entries"`
-		DryRun   bool           `json:"dryRun"`
-		Forced   bool           `json:"forced,omitempty"`
-		Sent     bool           `json:"sent"`
-		SentTo   string         `json:"sentTo,omitempty"`
-		SendErr  string         `json:"sendError,omitempty"`
-	}{
-		Report:  report,
-		Events:  len(events),
-		Entries: len(entries),
-		DryRun:  dryRun,
-		Forced:  force,
+	type result struct {
+		Report  compare.Report `json:"report"`
+		Events  int            `json:"events"`
+		Entries int            `json:"entries"`
+		DryRun  bool           `json:"dryRun"`
+		Forced  bool           `json:"forced,omitempty"`
+		Sent    bool           `json:"sent"`
+		SentTo  string         `json:"sentTo,omitempty"`
+		SendErr string         `json:"sendError,omitempty"`
 	}
 
-	if shouldSend {
+	res := result{Report: report, Events: len(events), Entries: len(entries), DryRun: dryRun, Forced: force}
+
+	if (report.NeedsNotify || force) && !dryRun {
 		mailer, err := gmailsend.New(r.Context())
 		if err != nil {
-			result.SendErr = err.Error()
+			res.SendErr = err.Error()
 		} else {
 			subject := fmt.Sprintf("[toggl-notifier] Missing %s of tracking on %s",
 				compare.FormatDuration(report.DeltaSeconds), report.Day)
 			body := fmt.Sprintf(
 				"Today (%s):\n"+
-					"  Calendar (filtered):  %s across %d event(s)\n"+
-					"  Toggl (project):      %s across %d entry/entries\n"+
-					"  Gap (calendar - toggl): %s\n"+
-					"  Threshold:            %s\n\n"+
+					"  Calendar (filtered):    %s across %d event(s)\n"+
+					"  Toggl (project):        %s across %d entry/entries\n"+
+					"  Gap (calendar − toggl): %s\n"+
+					"  Threshold:              %s\n\n"+
 					"Open Toggl: https://track.toggl.com/timer\n",
 				report.Day,
 				compare.FormatDuration(report.CalendarSeconds), len(events),
@@ -110,19 +105,19 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 				compare.FormatDuration(report.ThresholdSeconds),
 			)
 			if err := mailer.Send(r.Context(), notifyEmail, subject, body); err != nil {
-				result.SendErr = err.Error()
+				res.SendErr = err.Error()
 			} else {
-				result.Sent = true
-				result.SentTo = notifyEmail
+				res.Sent = true
+				res.SentTo = notifyEmail
 			}
 		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	if result.SendErr != "" {
+	if res.SendErr != "" {
 		w.WriteHeader(http.StatusBadGateway)
 	}
-	json.NewEncoder(w).Encode(result)
+	json.NewEncoder(w).Encode(res)
 }
 
 func writeErr(w http.ResponseWriter, code int, msg string) {
