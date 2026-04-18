@@ -4,6 +4,9 @@
       "runtime": "@vercel/go@3.5.0"
     }
   },
+  "rewrites": [
+    { "source": "/api/:endpoint", "destination": "/api/:endpoint/main" }
+  ],
   "redirects": [
     { "source": "/", "destination": "/api/google_auth", "permanent": false }
   ]
