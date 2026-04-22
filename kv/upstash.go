@@ -33,6 +33,16 @@ func (c *Client) Set(ctx context.Context, key, value string) error {
 	return err
 }
 
+// SetNX sets key=value only if key does not already exist.
+// Returns true if the key was set, false if it already existed.
+func (c *Client) SetNX(ctx context.Context, key, value string) (bool, error) {
+	res, err := c.do(ctx, "SET", key, value, "NX")
+	if err != nil {
+		return false, err
+	}
+	return res != nil, nil
+}
+
 func (c *Client) Get(ctx context.Context, key string) (string, error) {
 	res, err := c.do(ctx, "GET", key)
 	if err != nil {
