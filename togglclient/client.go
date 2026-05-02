@@ -71,7 +71,19 @@ func (c *Client) EntriesForDay(ctx context.Context, day time.Time) ([]TimeEntry,
 	loc := day.Location()
 	start := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, loc)
 	end := start.Add(24 * time.Hour)
+	return c.entriesBetween(ctx, start, end)
+}
 
+// EntriesForRange returns entries from 00:00 on startDay through 24:00 on endDay
+// (endDay inclusive). Both bounds use endDay's location.
+func (c *Client) EntriesForRange(ctx context.Context, startDay, endDay time.Time) ([]TimeEntry, error) {
+	loc := endDay.Location()
+	start := time.Date(startDay.Year(), startDay.Month(), startDay.Day(), 0, 0, 0, 0, loc)
+	end := time.Date(endDay.Year(), endDay.Month(), endDay.Day(), 0, 0, 0, 0, loc).Add(24 * time.Hour)
+	return c.entriesBetween(ctx, start, end)
+}
+
+func (c *Client) entriesBetween(ctx context.Context, start, end time.Time) ([]TimeEntry, error) {
 	params := url.Values{}
 	params.Set("start_date", start.Format(time.RFC3339))
 	params.Set("end_date", end.Format(time.RFC3339))

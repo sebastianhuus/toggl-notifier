@@ -63,7 +63,19 @@ func (c *Client) EventsForDay(ctx context.Context, day time.Time) ([]Event, erro
 	loc := day.Location()
 	start := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, loc)
 	end := start.Add(24 * time.Hour)
+	return c.eventsBetween(ctx, start, end)
+}
 
+// EventsForRange returns events from 00:00 on startDay through 24:00 on endDay
+// (endDay inclusive). Both bounds use endDay's location.
+func (c *Client) EventsForRange(ctx context.Context, startDay, endDay time.Time) ([]Event, error) {
+	loc := endDay.Location()
+	start := time.Date(startDay.Year(), startDay.Month(), startDay.Day(), 0, 0, 0, 0, loc)
+	end := time.Date(endDay.Year(), endDay.Month(), endDay.Day(), 0, 0, 0, 0, loc).Add(24 * time.Hour)
+	return c.eventsBetween(ctx, start, end)
+}
+
+func (c *Client) eventsBetween(ctx context.Context, start, end time.Time) ([]Event, error) {
 	resp, err := c.svc.Events.List("primary").
 		TimeMin(start.Format(time.RFC3339)).
 		TimeMax(end.Format(time.RFC3339)).
