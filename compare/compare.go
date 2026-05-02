@@ -23,6 +23,31 @@ func Run(day string, calendarSeconds, togglSeconds, thresholdSeconds int64) Repo
 	}
 }
 
+type WeeklyReport struct {
+	PeriodStart      string `json:"periodStart"`
+	PeriodEnd        string `json:"periodEnd"`
+	ISOWeek          string `json:"isoWeek"`
+	CalendarSeconds  int64  `json:"calendarSeconds"`
+	TogglSeconds     int64  `json:"togglSeconds"`
+	DeltaSeconds     int64  `json:"deltaSeconds"`
+	ThresholdSeconds int64  `json:"thresholdSeconds"`
+	NeedsNotify      bool   `json:"needsNotify"`
+}
+
+func RunWeekly(periodStart, periodEnd, isoWeek string, calendarSeconds, togglSeconds, thresholdSeconds int64) WeeklyReport {
+	delta := calendarSeconds - togglSeconds
+	return WeeklyReport{
+		PeriodStart:      periodStart,
+		PeriodEnd:        periodEnd,
+		ISOWeek:          isoWeek,
+		CalendarSeconds:  calendarSeconds,
+		TogglSeconds:     togglSeconds,
+		DeltaSeconds:     delta,
+		ThresholdSeconds: thresholdSeconds,
+		NeedsNotify:      delta > thresholdSeconds,
+	}
+}
+
 func FormatDuration(seconds int64) string {
 	if seconds < 0 {
 		return "-" + FormatDuration(-seconds)
