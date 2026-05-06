@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"mime"
 	"strings"
 
 	"golang.org/x/oauth2"
@@ -44,7 +45,7 @@ func New(ctx context.Context) (*Client, error) {
 func (c *Client) Send(ctx context.Context, to, subject, body string) error {
 	var buf strings.Builder
 	fmt.Fprintf(&buf, "To: %s\r\n", to)
-	fmt.Fprintf(&buf, "Subject: %s\r\n", subject)
+	fmt.Fprintf(&buf, "Subject: %s\r\n", mime.QEncoding.Encode("UTF-8", subject))
 	fmt.Fprintf(&buf, "Content-Type: text/plain; charset=\"UTF-8\"\r\n")
 	fmt.Fprintf(&buf, "\r\n%s", body)
 
