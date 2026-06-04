@@ -27,24 +27,47 @@ func New() (*Client, error) {
 	return &Client{apiKey: key, http: http.DefaultClient}, nil
 }
 
+type jobSchedule struct {
+	Timezone string `json:"timezone"`
+	Months   []int  `json:"months"`
+	Mdays    []int  `json:"mdays"`
+	Hours    []int  `json:"hours"`
+	Minutes  []int  `json:"minutes"`
+	Wdays    []int  `json:"wdays"`
+}
+
 // Create schedules a one-time GET request to url at fireAt (Europe/Oslo).
-// bearerToken is embedded in the job's Authorization header so the target
-// endpoint can authenticate the call.
+// bearerToken is embedded in the job's Authorization header.
 func (c *Client) Create(ctx context.Context, title, url, bearerToken string, fireAt time.Time) (int64, error) {
 	oslo, err := time.LoadLocation("Europe/Oslo")
 	if err != nil {
 		return 0, err
 	}
 	t := fireAt.In(oslo)
+	return c.create(ctx, title, url, bearerToken, jobSchedule{
+		Timezone: "Europe/Oslo",
+		Months:   []int{int(t.Month())},
+		Mdays:    []int{t.Day()},
+		Hours:    []int{t.Hour()},
+		Minutes:  []int{t.Minute()},
+		Wdays:    []int{-1},
+	})
+}
 
-	type jobSchedule struct {
-		Timezone string `json:"timezone"`
-		Months   []int  `json:"months"`
-		Mdays    []int  `json:"mdays"`
-		Hours    []int  `json:"hours"`
-		Minutes  []int  `json:"minutes"`
-		Wdays    []int  `json:"wdays"`
-	}
+// CreateDaily schedules a recurring daily GET request to url at hour:minute (Europe/Oslo).
+// bearerToken is embedded in the job's Authorization header.
+func (c *Client) CreateDaily(ctx context.Context, title, url, bearerToken string, hour, minute int) (int64, error) {
+	return c.create(ctx, title, url, bearerToken, jobSchedule{
+		Timezone: "Europe/Oslo",
+		Months:   []int{-1},
+		Mdays:    []int{-1},
+		Hours:    []int{hour},
+		Minutes:  []int{minute},
+		Wdays:    []int{-1},
+	})
+}
+
+func (c *Client) create(ctx context.Context, title, url, bearerToken string, sched jobSchedule) (int64, error) {
 	type extendedData struct {
 		Headers map[string]string `json:"headers"`
 	}
@@ -63,17 +86,8 @@ func (c *Client) Create(ctx context.Context, title, url, bearerToken string, fir
 			URL:           url,
 			Enabled:       true,
 			RequestMethod: 0,
-			Schedule: jobSchedule{
-				Timezone: "Europe/Oslo",
-				Months:   []int{int(t.Month())},
-				Mdays:    []int{t.Day()},
-				Hours:    []int{t.Hour()},
-				Minutes:  []int{t.Minute()},
-				Wdays:    []int{-1},
-			},
-			ExtendedData: extendedData{
-				Headers: map[string]string{"Authorization": "Bearer " + bearerToken},
-			},
+			Schedule:      sched,
+			ExtendedData:  extendedData{Headers: map[string]string{"Authorization": "Bearer " + bearerToken}},
 		},
 	})
 	if err != nil {

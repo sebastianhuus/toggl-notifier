@@ -11,7 +11,11 @@ import (
 	"strings"
 )
 
-const RefreshTokenKey = "google:refresh_token"
+const (
+	RefreshTokenKey    = "google:refresh_token"
+	CronScheduleDay    = "cronjob:permanent:schedule_day"
+	CronCleanupCron    = "cronjob:permanent:cleanup_cron"
+)
 
 type Client struct {
 	url   string

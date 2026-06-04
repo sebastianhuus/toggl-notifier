@@ -4,20 +4,32 @@ import (
 	"encoding/json"
 	"html/template"
 	"net/http"
+	"os"
 
 	"toggl-notifier/googleauth"
 	"toggl-notifier/kv"
 )
 
+type tmplData struct {
+	CronsReady bool
+	SetupURL   string
+}
+
 var successTmpl = template.Must(template.New("ok").Parse(`<!doctype html>
 <html lang="en">
 <head><meta charset="utf-8"><title>Signed in</title>
-<style>body{font-family:system-ui,sans-serif;max-width:640px;margin:48px auto;padding:0 16px;line-height:1.5}a{color:#0b5fff}</style>
+<style>body{font-family:system-ui,sans-serif;max-width:640px;margin:48px auto;padding:0 16px;line-height:1.5}a{color:#0b5fff}code{background:#f4f4f4;padding:2px 6px;border-radius:4px;font-size:.9em}</style>
 </head>
 <body>
 <h1>Signed in</h1>
 <p>Refresh token stored. You can close this tab.</p>
 <p><a href="/api/calendar">Try /api/calendar</a></p>
+{{if .CronsReady}}
+<p>Permanent crons are configured.</p>
+{{else}}
+<p>Permanent crons not set up yet. Hit this in Postman:<br><br>
+<code>GET {{.SetupURL}}</code></p>
+{{end}}
 </body></html>`))
 
 func Handler(w http.ResponseWriter, r *http.Request) {
@@ -60,8 +72,30 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.SetCookie(w, &http.Cookie{Name: "oauth_state", Value: "", Path: "/", MaxAge: -1})
+
+	cronsReady := false
+	sd, _ := store.Get(r.Context(), kv.CronScheduleDay)
+	cc, _ := store.Get(r.Context(), kv.CronCleanupCron)
+	cronsReady = sd != "" && cc != ""
+
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	successTmpl.Execute(w, nil)
+	successTmpl.Execute(w, tmplData{
+		CronsReady: cronsReady,
+		SetupURL:   appBaseURL(r) + "/api/setup_crons",
+	})
+}
+
+func appBaseURL(r *http.Request) string {
+	if u := os.Getenv("APP_URL"); u != "" {
+		return u
+	}
+	scheme := "https"
+	if proto := r.Header.Get("X-Forwarded-Proto"); proto != "" {
+		scheme = proto
+	} else if r.TLS == nil {
+		scheme = "http"
+	}
+	return scheme + "://" + r.Host
 }
 
 func writeErr(w http.ResponseWriter, code int, msg string) {
