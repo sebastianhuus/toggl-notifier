@@ -42,6 +42,21 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	now := time.Now().In(loc)
 	dateKey := "cronjob:daily:" + now.Format("2006-01-02")
 
+	kvc, err := kv.New()
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, "kv: "+err.Error())
+		return
+	}
+	existing, err := kvc.Get(r.Context(), dateKey)
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, "kv get: "+err.Error())
+		return
+	}
+	if existing != "" {
+		writeJSON(w, http.StatusOK, map[string]string{"skipped": "already scheduled today"})
+		return
+	}
+
 	gc, err := gcal.New(r.Context())
 	if err != nil {
 		writeErr(w, http.StatusInternalServerError, "gcal: "+err.Error())
@@ -58,6 +73,10 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fireAt := events[0].Start.Add(15 * time.Minute)
+	if !fireAt.After(now) {
+		writeJSON(w, http.StatusOK, map[string]string{"skipped": "first event already started, window passed"})
+		return
+	}
 
 	cj, err := cronjob.New()
 	if err != nil {
@@ -72,11 +91,6 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	kvc, err := kv.New()
-	if err != nil {
-		writeErr(w, http.StatusInternalServerError, "kv: "+err.Error())
-		return
-	}
 	if err := kvc.Set(r.Context(), dateKey, strconv.FormatInt(jobID, 10)); err != nil {
 		writeErr(w, http.StatusInternalServerError, "kv set: "+err.Error())
 		return

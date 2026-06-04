@@ -75,11 +75,10 @@ func (c *Client) EntriesForDay(ctx context.Context, day time.Time) ([]TimeEntry,
 }
 
 // EntriesForRange returns entries from 00:00 on startDay through 24:00 on endDay
-// (endDay inclusive). Both bounds use endDay's location.
+// (endDay inclusive). Each day boundary is computed in its own location.
 func (c *Client) EntriesForRange(ctx context.Context, startDay, endDay time.Time) ([]TimeEntry, error) {
-	loc := endDay.Location()
-	start := time.Date(startDay.Year(), startDay.Month(), startDay.Day(), 0, 0, 0, 0, loc)
-	end := time.Date(endDay.Year(), endDay.Month(), endDay.Day(), 0, 0, 0, 0, loc).Add(24 * time.Hour)
+	start := time.Date(startDay.Year(), startDay.Month(), startDay.Day(), 0, 0, 0, 0, startDay.Location())
+	end := time.Date(endDay.Year(), endDay.Month(), endDay.Day(), 0, 0, 0, 0, endDay.Location()).Add(24 * time.Hour)
 	return c.entriesBetween(ctx, start, end)
 }
 

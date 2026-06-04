@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"toggl-notifier/auth"
@@ -58,14 +59,18 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		{kv.CronScheduleDay, "toggl-notifier schedule_day", "/api/schedule_day", 7, 0},
 		{kv.CronCleanupCron, "toggl-notifier cleanup_cron", "/api/cleanup_cron", 17, 0},
 	} {
-		name := job.path[5:] // strip "/api/"
+		name := strings.TrimPrefix(job.path, "/api/")
 		existing, err := kvc.Get(r.Context(), job.key)
 		if err != nil {
 			writeErr(w, http.StatusInternalServerError, "kv get: "+err.Error())
 			return
 		}
 		if existing != "" {
-			id, _ := strconv.ParseInt(existing, 10, 64)
+			id, err := strconv.ParseInt(existing, 10, 64)
+			if err != nil {
+				writeErr(w, http.StatusInternalServerError, "corrupt kv for "+name+": "+err.Error())
+				return
+			}
 			results[name] = jobResult{JobID: id, Skipped: "already configured"}
 			continue
 		}

@@ -67,11 +67,10 @@ func (c *Client) EventsForDay(ctx context.Context, day time.Time) ([]Event, erro
 }
 
 // EventsForRange returns events from 00:00 on startDay through 24:00 on endDay
-// (endDay inclusive). Both bounds use endDay's location.
+// (endDay inclusive). Each day boundary is computed in its own location.
 func (c *Client) EventsForRange(ctx context.Context, startDay, endDay time.Time) ([]Event, error) {
-	loc := endDay.Location()
-	start := time.Date(startDay.Year(), startDay.Month(), startDay.Day(), 0, 0, 0, 0, loc)
-	end := time.Date(endDay.Year(), endDay.Month(), endDay.Day(), 0, 0, 0, 0, loc).Add(24 * time.Hour)
+	start := time.Date(startDay.Year(), startDay.Month(), startDay.Day(), 0, 0, 0, 0, startDay.Location())
+	end := time.Date(endDay.Year(), endDay.Month(), endDay.Day(), 0, 0, 0, 0, endDay.Location()).Add(24 * time.Hour)
 	return c.eventsBetween(ctx, start, end)
 }
 

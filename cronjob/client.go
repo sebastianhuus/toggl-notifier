@@ -134,6 +134,9 @@ func (c *Client) Delete(ctx context.Context, jobID int64) error {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusNotFound {
+		return nil // already deleted; desired state achieved
+	}
 	if resp.StatusCode >= 300 {
 		b, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("cronjob delete %d: %d %s", jobID, resp.StatusCode, b)
