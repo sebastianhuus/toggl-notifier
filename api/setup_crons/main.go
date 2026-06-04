@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"toggl-notifier/auth"
 	"toggl-notifier/cronjob"
@@ -79,6 +80,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		results[name] = jobResult{JobID: jobID, Created: true}
+		time.Sleep(500 * time.Millisecond)
 	}
 
 	writeJSON(w, http.StatusOK, results)
