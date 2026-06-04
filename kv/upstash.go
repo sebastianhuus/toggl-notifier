@@ -11,7 +11,11 @@ import (
 	"strings"
 )
 
-const RefreshTokenKey = "google:refresh_token"
+const (
+	RefreshTokenKey    = "google:refresh_token"
+	CronScheduleDay    = "cronjob:permanent:schedule_day"
+	CronCleanupCron    = "cronjob:permanent:cleanup_cron"
+)
 
 type Client struct {
 	url   string
@@ -41,6 +45,11 @@ func (c *Client) SetNX(ctx context.Context, key, value string) (bool, error) {
 		return false, err
 	}
 	return res != nil, nil
+}
+
+func (c *Client) Del(ctx context.Context, key string) error {
+	_, err := c.do(ctx, "DEL", key)
+	return err
 }
 
 func (c *Client) Get(ctx context.Context, key string) (string, error) {
