@@ -43,6 +43,11 @@ func (c *Client) SetNX(ctx context.Context, key, value string) (bool, error) {
 	return res != nil, nil
 }
 
+func (c *Client) Del(ctx context.Context, key string) error {
+	_, err := c.do(ctx, "DEL", key)
+	return err
+}
+
 func (c *Client) Get(ctx context.Context, key string) (string, error) {
 	res, err := c.do(ctx, "GET", key)
 	if err != nil {
