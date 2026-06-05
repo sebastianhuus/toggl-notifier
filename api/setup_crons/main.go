@@ -66,13 +66,28 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if existing != "" {
-			id, err := strconv.ParseInt(existing, 10, 64)
+			if r.URL.Query().Get("force") != "true" {
+				id, err := strconv.ParseInt(existing, 10, 64)
+				if err != nil {
+					writeErr(w, http.StatusInternalServerError, "corrupt kv for "+name+": "+err.Error())
+					return
+				}
+				results[name] = jobResult{JobID: id, Skipped: "already configured"}
+				continue
+			}
+			oldID, err := strconv.ParseInt(existing, 10, 64)
 			if err != nil {
 				writeErr(w, http.StatusInternalServerError, "corrupt kv for "+name+": "+err.Error())
 				return
 			}
-			results[name] = jobResult{JobID: id, Skipped: "already configured"}
-			continue
+			if err := cj.Delete(r.Context(), oldID); err != nil {
+				writeErr(w, http.StatusBadGateway, "delete old job for "+name+": "+err.Error())
+				return
+			}
+			if err := kvc.Del(r.Context(), job.key); err != nil {
+				writeErr(w, http.StatusInternalServerError, "kv del: "+err.Error())
+				return
+			}
 		}
 
 		jobID, err := cj.CreateDaily(r.Context(), job.title, appURL+job.path, cronSecret, job.hour, job.minute)
