@@ -72,22 +72,24 @@ func (c *Client) create(ctx context.Context, title, url, bearerToken string, sch
 		Headers map[string]string `json:"headers"`
 	}
 	type job struct {
-		Title         string       `json:"title"`
-		URL           string       `json:"url"`
-		Enabled       bool         `json:"enabled"`
-		RequestMethod int          `json:"requestMethod"` // 0 = GET
-		Schedule      jobSchedule  `json:"schedule"`
-		ExtendedData  extendedData `json:"extendedData"`
+		Title          string       `json:"title"`
+		URL            string       `json:"url"`
+		Enabled        bool         `json:"enabled"`
+		RequestMethod  int          `json:"requestMethod"` // 0 = GET
+		RequestTimeout int          `json:"requestTimeout"`
+		Schedule       jobSchedule  `json:"schedule"`
+		ExtendedData   extendedData `json:"extendedData"`
 	}
 
 	payload, err := json.Marshal(map[string]any{
 		"job": job{
-			Title:         title,
-			URL:           url,
-			Enabled:       true,
-			RequestMethod: 0,
-			Schedule:      sched,
-			ExtendedData:  extendedData{Headers: map[string]string{"Authorization": "Bearer " + bearerToken}},
+			Title:          title,
+			URL:            url,
+			Enabled:        true,
+			RequestMethod:  0,
+			RequestTimeout: 30,
+			Schedule:       sched,
+			ExtendedData:   extendedData{Headers: map[string]string{"Authorization": "Bearer " + bearerToken}},
 		},
 	})
 	if err != nil {
