@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -65,6 +66,43 @@ func (c *Client) Get(ctx context.Context, key string) (string, error) {
 		return "", fmt.Errorf("upstash GET %s: unexpected type %T", key, res)
 	}
 	return s, nil
+}
+
+// LPush prepends value to the list at key. Returns the new list length.
+func (c *Client) LPush(ctx context.Context, key, value string) error {
+	_, err := c.do(ctx, "LPUSH", key, value)
+	return err
+}
+
+// LRange returns elements of the list at key from index start to stop (inclusive).
+// Use stop=-1 for the full list.
+func (c *Client) LRange(ctx context.Context, key string, start, stop int) ([]string, error) {
+	res, err := c.do(ctx, "LRANGE", key, strconv.Itoa(start), strconv.Itoa(stop))
+	if err != nil {
+		return nil, err
+	}
+	if res == nil {
+		return nil, nil
+	}
+	items, ok := res.([]any)
+	if !ok {
+		return nil, fmt.Errorf("upstash LRANGE %s: unexpected type %T", key, res)
+	}
+	out := make([]string, 0, len(items))
+	for _, item := range items {
+		s, ok := item.(string)
+		if !ok {
+			return nil, fmt.Errorf("upstash LRANGE %s: element type %T", key, item)
+		}
+		out = append(out, s)
+	}
+	return out, nil
+}
+
+// LTrim trims the list at key to only contain elements from index start to stop (inclusive).
+func (c *Client) LTrim(ctx context.Context, key string, start, stop int) error {
+	_, err := c.do(ctx, "LTRIM", key, strconv.Itoa(start), strconv.Itoa(stop))
+	return err
 }
 
 func (c *Client) do(ctx context.Context, cmd ...string) (any, error) {

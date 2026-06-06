@@ -11,6 +11,7 @@ import (
 
 	"toggl-notifier/auth"
 	"toggl-notifier/compare"
+	"toggl-notifier/errlog"
 	"toggl-notifier/gcal"
 	"toggl-notifier/gmailsend"
 	"toggl-notifier/kv"
@@ -80,6 +81,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	}
 	entries, err := tc.EntriesForDay(r.Context(), day)
 	if err != nil {
+		errlog.Log(r.Context(), "check", "toggl: "+err.Error())
 		writeErr(w, http.StatusBadGateway, "toggl: "+err.Error())
 		return
 	}
@@ -91,6 +93,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	}
 	events, err := gc.EventsForDay(r.Context(), day)
 	if err != nil {
+		errlog.Log(r.Context(), "check", "calendar: "+err.Error())
 		writeErr(w, http.StatusBadGateway, "calendar: "+err.Error())
 		return
 	}
@@ -129,6 +132,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			}
 			claimed, kerr := kvc.SetNX(r.Context(), reminderKeyPrefix+dateKey, time.Now().UTC().Format(time.RFC3339))
 			if kerr != nil {
+				errlog.Log(r.Context(), "check", "kv setnx: "+kerr.Error())
 				res.SendErr = "kv: " + kerr.Error()
 				writeJSON(w, http.StatusBadGateway, res)
 				return
@@ -142,10 +146,12 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 
 		mailer, err := gmailsend.New(r.Context())
 		if err != nil {
+			errlog.Log(r.Context(), "check", "gmail init: "+err.Error())
 			res.SendErr = err.Error()
 		} else {
 			subject, body := buildEmail(report, len(events), len(entries), isReminder)
 			if err := mailer.Send(r.Context(), notifyEmail, subject, body); err != nil {
+				errlog.Log(r.Context(), "check", "gmail send: "+err.Error())
 				res.SendErr = err.Error()
 			} else {
 				res.Sent = true
