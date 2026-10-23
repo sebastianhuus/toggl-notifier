@@ -7,7 +7,6 @@ import (
 	"golang.org/x/oauth2"
 	googleendpoints "golang.org/x/oauth2/google"
 	calendar "google.golang.org/api/calendar/v3"
-	gmail "google.golang.org/api/gmail/v1"
 )
 
 func Config() (*oauth2.Config, error) {
@@ -23,7 +22,6 @@ func Config() (*oauth2.Config, error) {
 		RedirectURL:  redirect,
 		Scopes: []string{
 			calendar.CalendarEventsReadonlyScope,
-			gmail.GmailSendScope,
 		},
 		Endpoint: googleendpoints.Endpoint,
 	}, nil

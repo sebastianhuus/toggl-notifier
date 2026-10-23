@@ -9,7 +9,7 @@ import (
 	_ "time/tzdata"
 
 	"toggl-notifier/auth"
-	"toggl-notifier/gmailsend"
+	"toggl-notifier/resendsend"
 	"toggl-notifier/togglclient"
 )
 
@@ -71,7 +71,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 
 	// No entries — notify unless dry run
 	if !dryRun {
-		mailer, err := gmailsend.New(r.Context())
+		mailer, err := resendsend.New()
 		if err != nil {
 			res.SendErr = err.Error()
 		} else {
