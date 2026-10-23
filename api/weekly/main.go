@@ -13,7 +13,7 @@ import (
 	"toggl-notifier/compare"
 	"toggl-notifier/errlog"
 	"toggl-notifier/gcal"
-	"toggl-notifier/gmailsend"
+	"toggl-notifier/resendsend"
 	"toggl-notifier/kv"
 	"toggl-notifier/togglclient"
 )
@@ -137,14 +137,14 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		mailer, err := gmailsend.New(r.Context())
+		mailer, err := resendsend.New()
 		if err != nil {
-			errlog.Log(r.Context(), "weekly", "gmail init: "+err.Error())
+			errlog.Log(r.Context(), "weekly", "resend init: "+err.Error())
 			res.SendErr = err.Error()
 		} else {
 			subject, body := buildEmail(report, len(events), len(entries))
 			if err := mailer.Send(r.Context(), notifyEmail, subject, body); err != nil {
-				errlog.Log(r.Context(), "weekly", "gmail send: "+err.Error())
+				errlog.Log(r.Context(), "weekly", "resend send: "+err.Error())
 				res.SendErr = err.Error()
 			} else {
 				res.Sent = true
